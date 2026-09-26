@@ -99,12 +99,12 @@
                         </button>
                     </form>
 
-                    <!-- 2. Forgot Password Request Form (Mail Dispatch) -->
+                    <!-- 2. Forgot Password Request Form (Nodemailer Mail Dispatch) -->
                     <form id="forgotForm" onsubmit="handleForgotRequest(event)" class="space-y-4 hidden">
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 mb-1">Registered Work Email</label>
                             <input type="email" id="forgotEmail" required placeholder="name@company.com" class="w-full text-sm border border-slate-300 rounded-lg p-3 outline-none focus:border-indigo-600 transition bg-slate-50/50">
-                            <p class="text-[11px] text-slate-400 mt-1">We will generate a secure recovery token and send a reset link to your email inbox.</p>
+                            <p class="text-[11px] text-slate-400 mt-1">Our mail server will dispatch a secure password reset link straight to your inbox.</p>
                         </div>
                         <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-3 rounded-lg transition shadow-md shadow-indigo-600/20">
                             <i class="fa-solid fa-paper-plane mr-1.5"></i> Send Password Reset Mail
@@ -548,20 +548,32 @@
             }
         }
 
-        function handleForgotRequest(event) {
+        // Updated Real Email Dispatch Function via Backend Nodemailer API
+        async function handleForgotRequest(event) {
             event.preventDefault();
             const email = document.getElementById('forgotEmail').value.trim().toLowerCase();
-            const user = users.find(u => u.email === email);
 
-            if (!user) {
-                alert("No account found with this email address in the enterprise directory.");
-                return;
+            try {
+                const response = await fetch('http://localhost:5000/api/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    resetEmailTarget = email;
+                    document.getElementById('resetTargetEmail').innerText = email;
+                    alert(`✅ Success: ${data.message}`);
+                    switchAuthView('reset');
+                } else {
+                    alert(`❌ Error: ${data.error || 'Could not send reset email.'}`);
+                }
+            } catch (err) {
+                console.error('Network Error:', err);
+                alert('Could not connect to the mail server. Ensure your backend server.js is running on port 5000.');
             }
-
-            resetEmailTarget = email;
-            document.getElementById('resetTargetEmail').innerText = email;
-            alert(`📧 [Mail Server Dispatched]: A secure password reset link has been successfully sent to ${email}. (Simulated: Proceeding to password reset screen).`);
-            switchAuthView('reset');
         }
 
         function handlePasswordUpdate(event) {
