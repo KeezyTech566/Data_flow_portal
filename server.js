@@ -57,6 +57,59 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'online', service: 'Data Flow Portal API - Keezy Technologies' });
 });
 
+// Persistent User Registration Endpoint
+app.post('/api/register', async (req, res) => {
+    const { name, email, password, role, accountType, tenantName } = req.body;
+
+    if (!email || !password || !name) {
+        return res.status(400).json({ error: 'All required fields must be filled.' });
+    }
+
+    try {
+        // Check if user already exists in PostgreSQL
+        const existing = await pool.query('SELECT * FROM portal_users WHERE email = $1', [email]);
+        if (existing.rows.length > 0) {
+            return res.status(400).json({ error: 'An account with this email already exists in the database.' });
+        }
+
+        // Insert new user into PostgreSQL portal_users table
+        const insertQuery = `
+            INSERT INTO portal_users (name, email, password, role, account_type, tenant_name)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING *;
+        `;
+        const values = [name, email, password, role, accountType, tenantName];
+        const newRecord = await pool.query(insertQuery, values);
+
+        res.json({ success: true, user: newRecord.rows[0], message: 'User registered successfully in PostgreSQL.' });
+    } catch (error) {
+        console.error('Registration Error:', error);
+        res.status(500).json({ error: 'Database registration failed.', details: error.message });
+    }
+});
+
+// Persistent User Login Authentication Endpoint
+app.post('/api/login', async (req, res) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password are required.' });
+    }
+
+    try {
+        const result = await pool.query('SELECT * FROM portal_users WHERE email = $1 AND password = $2', [email, password]);
+        
+        if (result.rows.length === 0) {
+            return res.status(400).json({ error: 'Invalid email or password.' });
+        }
+
+        res.json({ success: true, user: result.rows[0] });
+    } catch (error) {
+        console.error('Login Error:', error);
+        res.status(500).json({ error: 'Database authentication failed.', details: error.message });
+    }
+});
+
 // Universal Password Reset Endpoint for Any User Email (Gmail, Yahoo, Outlook, etc.)
 app.post('/api/forgot-password', async (req, res) => {
     const { email } = req.body;
