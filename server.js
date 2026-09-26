@@ -13,7 +13,7 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Serve static frontend files directly from project directory on port 5000
+// Serve static frontend files directly from the root project directory
 app.use(express.static(__dirname));
 
 // PostgreSQL Connection Pool
@@ -38,10 +38,10 @@ pool.query('SELECT NOW()', (err, res) => {
 const transporter = nodemailer.createTransport({
     host: process.env.MAIL_HOST || 'smtp.gmail.com',
     port: process.env.MAIL_PORT || 587,
-    secure: false, // true for 465, false for 587
+    secure: false,
     auth: {
-        user: process.env.MAIL_USER, // System sender email
-        pass: process.env.MAIL_PASS, // App password or SMTP credential
+        user: process.env.MAIL_USER,
+        pass: process.env.MAIL_PASS,
     },
 });
 
@@ -56,7 +56,7 @@ const chunkArray = (array, size) => {
 
 // ==================== API ENDPOINTS ====================
 
-// Explicit Route to serve index.html at root
+// Explicit Route to serve index.html at root using absolute path
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -75,13 +75,11 @@ app.post('/api/register', async (req, res) => {
     }
 
     try {
-        // Check if user already exists in PostgreSQL
         const existing = await pool.query('SELECT * FROM portal_users WHERE email = $1', [email]);
         if (existing.rows.length > 0) {
             return res.status(400).json({ error: 'An account with this email already exists in the database.' });
         }
 
-        // Insert new user into PostgreSQL portal_users table
         const insertQuery = `
             INSERT INTO portal_users (name, email, password, role, account_type, tenant_name)
             VALUES ($1, $2, $3, $4, $5, $6)
@@ -119,7 +117,7 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// Universal Password Reset Endpoint for Any User Email (Gmail, Yahoo, Outlook, etc.)
+// Universal Password Reset Endpoint
 app.post('/api/forgot-password', async (req, res) => {
     const { email } = req.body;
 
@@ -133,7 +131,7 @@ app.post('/api/forgot-password', async (req, res) => {
 
         const mailOptions = {
             from: `"Data Flow Portal Security" <${process.env.MAIL_USER}>`,
-            to: email, // Delivers to any provider domain globally
+            to: email,
             subject: 'Password Reset Request - Data Flow Portal',
             html: `
                 <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
