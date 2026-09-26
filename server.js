@@ -35,7 +35,7 @@ pool.query('SELECT NOW()', (err, res) => {
     }
 });
 
-// Universal SMTP Transporter (Supports Gmail, Yahoo, Outlook, and custom domains)
+// Universal SMTP Transporter
 const transporter = nodemailer.createTransport({
     host: process.env.MAIL_HOST || 'smtp.gmail.com',
     port: process.env.MAIL_PORT || 587,
@@ -57,7 +57,7 @@ const chunkArray = (array, size) => {
 
 // ==================== API ENDPOINTS ====================
 
-// Explicit Root Route with File Existence Debugging Check
+// Explicit Root Route with File Existence Debugging Check (MUST BE BEFORE app.listen)
 app.get('/', (req, res) => {
     const filePath = path.join(__dirname, 'index.html');
     console.log("🔍 Attempting to load frontend file from:", filePath);
@@ -210,7 +210,7 @@ app.post('/api/ingest-bulk', async (req, res) => {
     }
 });
 
-// Start Express Server
+// Start Express Server (MUST BE AT THE VERY BOTTOM AFTER ALL ROUTES)
 app.listen(PORT, () => {
     console.log(`🚀 Data Flow Portal Backend running live on http://localhost:${PORT}`);
 });
