@@ -4,76 +4,100 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-app.use(express.json());
-app.use(cors());
+const PORT = process.env.PORT || 5000;
 
-// Configure PostgreSQL connection (matches settings you view in DBeaver)
+// Middleware
+app.use(cors());
+app.use(express.json({ limit: '50mb' })); // Increased payload limit to support large datasets
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// PostgreSQL Connection Pool Setup
 const pool = new Pool({
     user: process.env.DB_USER || 'postgres',
     host: process.env.DB_HOST || 'localhost',
     database: process.env.DB_NAME || 'data_flow_portal',
-    password: process.env.DB_PASSWORD || 'your_password',
+    password: process.env.DB_PASSWORD || 'your_postgres_password',
     port: process.env.DB_PORT || 5432,
+    ssl: process.env.DB_HOST && process.env.DB_HOST.includes('supabase') ? { rejectUnauthorized: false } : false
 });
 
-// Initialize Database Tables automatically on startup
-async function setupDatabase() {
-    try {
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS portal_users (
-                id SERIAL PRIMARY KEY,
-                name VARCHAR(100) NOT NULL,
-                email VARCHAR(150) UNIQUE NOT NULL,
-                password VARCHAR(255) NOT NULL,
-                role VARCHAR(50) NOT NULL
-            );
-
-            CREATE TABLE IF NOT EXISTS portal_datasets (
-                id SERIAL PRIMARY KEY,
-                dataset_id INT NOT NULL,
-                name VARCHAR(150) NOT NULL,
-                dept VARCHAR(100) NOT NULL,
-                uploader VARCHAR(100) NOT NULL,
-                status VARCHAR(50) NOT NULL
-            );
-        `);
-        console.log("PostgreSQL Database tables verified/created successfully.");
-    } catch (err) {
-        console.error("Database setup error (Make sure PostgreSQL is running):", err.message);
-    }
-}
-setupDatabase();
-
-// API Endpoint for User Registration
-api.post('/api/register', async (req, res) => {
-    const { name, email, password, role } = req.body;
-    try {
-        const newUser = await pool.query(
-            'INSERT INTO portal_users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING *',
-            [name, email, password, role]
-        );
-        res.json({ success: true, user: newUser.rows[0] });
-    } catch (err) {
-        res.status(400).json({ success: false, message: 'Email already exists or database error.' });
+// Verify PostgreSQL Connection on Startup
+pool.query('SELECT NOW()', (err, res) => {
+    if (err) {
+        console.error('❌ PostgreSQL Connection Failed:', err.stack);
+    } else {
+        console.log('✅ PostgreSQL Connected Successfully at:', res.rows[0].now);
     }
 });
 
-// API Endpoint for User Login
-app.post('/api/login', async (req, res) => {
-    const { email, password } = req.body;
+// ==================== BIG DATA CHUNKING UTILITY ====================
+// Splits massive arrays (millions of records) into controlled batches (e.g., 1,000 rows each)
+// to prevent memory exhaustion, request hanging, and database crashes.
+const chunkArray = (array, size) => {
+    let result = [];
+    for (let i = 0; i < array.length; i += size) {
+        result.push(array.slice(i, i + size));
+    }
+    return result;
+};
+
+// ==================== API ENDPOINTS ====================
+
+// Test API Route
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'online', service: 'Data Flow Portal API - Keezy Technologies' });
+});
+
+// High-Performance Bulk Data Ingestion Endpoint (Handles Millions of Rows)
+app.post('/api/ingest-bulk', async (req, res) => {
+    const { datasetName, tenant, department, rows } = req.body;
+
+    if (!rows || !Array.isArray(rows) || rows.length === 0) {
+        return res.status(400).json({ error: 'No data rows provided for ingestion.' });
+    }
+
+    const client = await pool.connect();
     try {
-        const result = await pool.query('SELECT * FROM portal_users WHERE email = $1 AND password = $2', [email, password]);
-        if (result.rows.length > 0) {
-            res.json({ success: true, user: result.rows[0] });
-        } else {
-            res.status(401).json({ success: false, message: 'Invalid email or password.' });
+        await client.query('BEGIN'); // Start transaction for atomic bulk operations
+
+        // 1. Chunk records into safe batches of 1,000 rows per batch
+        const batches = chunkArray(rows, 1000);
+        let totalInserted = 0;
+
+        for (let batch of batches) {
+            // Dynamically construct bulk insert parameter placeholders ($1, $2, $3...)
+            let valuesClause = [];
+            let queryParams = [];
+            let paramIndex = 1;
+
+            batch.forEach((rowObj) => {
+                let rowValues = Object.values(rowObj);
+                let placeholders = rowValues.map(() => `$${paramIndex++}`).join(', ');
+                valuesClause.push(`(${placeholders})`);
+                queryParams.push(...rowValues);
+            });
+
+            // Execute high-speed bulk insert query
+            const columns = Object.keys(rows[0]).join(', ');
+            const insertQuery = `INSERT INTO bulk_staging_data (${columns}) VALUES ${valuesClause.join(', ')}`;
+            
+            await client.query(insertQuery, queryParams);
+            totalInserted += batch.length;
         }
-    } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+
+        await client.query('COMMIT'); // Commit transaction
+        res.json({ success: true, message: `Successfully ingested ${totalInserted} records across chunks without performance degradation.` });
+
+    } catch (error) {
+        await client.query('ROLLBACK'); // Rollback transaction on any failure
+        console.error('Bulk Ingestion Error:', error);
+        res.status(500).json({ error: 'Database bulk insertion failed.', details: error.message });
+    } finally {
+        client.release();
     }
 });
 
-const PORT = process.env.PORT || 5000;
+// Start Express Server
 app.listen(PORT, () => {
-    console.log(`Data Flow Backend server running on port ${PORT}`);
+    console.log(`🚀 Data Flow Portal Backend running live on http://localhost:${PORT}`);
 });
