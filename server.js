@@ -1,6 +1,7 @@
 const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
+const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const app = express();
@@ -30,6 +31,17 @@ pool.query('SELECT NOW()', (err, res) => {
     }
 });
 
+// Configure Nodemailer Mail Transporter
+const transporter = nodemailer.createTransport({
+    host: process.env.MAIL_HOST || 'smtp.gmail.com',
+    port: process.env.MAIL_PORT || 587,
+    secure: false, // true for 465, false for other ports
+    auth: {
+        user: process.env.MAIL_USER,
+        pass: process.env.MAIL_PASS,
+    },
+});
+
 // ==================== BIG DATA CHUNKING UTILITY ====================
 // Splits massive arrays (millions of records) into controlled batches (e.g., 1,000 rows each)
 // to prevent memory exhaustion, request hanging, and database crashes.
@@ -46,6 +58,49 @@ const chunkArray = (array, size) => {
 // Test API Route
 app.get('/api/health', (req, res) => {
     res.json({ status: 'online', service: 'Data Flow Portal API - Keezy Technologies' });
+});
+
+// Real Email Dispatch Endpoint for Forgot Password
+app.post('/api/forgot-password', async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ error: 'Email address is required.' });
+    }
+
+    try {
+        // 1. Generate a secure random token
+        const resetToken = Math.random().toString(36).substring(2) + Date.now();
+        
+        // 2. Construct the reset link pointing to your portal
+        const resetLink = `http://localhost:5000/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
+
+        // 3. Send the physical email via Nodemailer
+        const mailOptions = {
+            from: '"Data Flow Portal Security" <no-reply@keezytech.com>',
+            to: email,
+            subject: 'Password Reset Request - Data Flow Portal',
+            html: `
+                <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+                    <h2 style="color: #4f46e5;">Data Flow Portal Security</h2>
+                    <p>Hello,</p>
+                    <p>We received a request to reset your password for your Data Flow Portal enterprise workspace.</p>
+                    <p>Click the secure button below to set a new password:</p>
+                    <a href="${resetLink}" style="background-color: #4f46e5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold; margin: 15px 0;">Reset Your Password</a>
+                    <p>If you did not request this password reset, please ignore this email.</p>
+                    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+                    <p style="font-size: 11px; color: #888;">Developed by Keezy Technologies © 2026</p>
+                </div>
+            `,
+        };
+
+        await transporter.sendMail(mailOptions);
+        res.json({ success: true, message: `Password reset email successfully dispatched to ${email}` });
+
+    } catch (error) {
+        console.error('Mail Dispatch Error:', error);
+        res.status(500).json({ error: 'Failed to send reset email.', details: error.message });
+    }
 });
 
 // High-Performance Bulk Data Ingestion Endpoint (Handles Millions of Rows)
