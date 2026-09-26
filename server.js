@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors());
-app.use(express.json({ limit: '50mb' })); // Increased payload limit to support large datasets
+app.use(express.json({ limit: '50mb' })); // Large payload limit for enterprise data files
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // PostgreSQL Connection Pool Setup
@@ -65,7 +65,6 @@ app.post('/api/ingest-bulk', async (req, res) => {
         let totalInserted = 0;
 
         for (let batch of batches) {
-            // Dynamically construct bulk insert parameter placeholders ($1, $2, $3...)
             let valuesClause = [];
             let queryParams = [];
             let paramIndex = 1;
@@ -77,7 +76,6 @@ app.post('/api/ingest-bulk', async (req, res) => {
                 queryParams.push(...rowValues);
             });
 
-            // Execute high-speed bulk insert query
             const columns = Object.keys(rows[0]).join(', ');
             const insertQuery = `INSERT INTO bulk_staging_data (${columns}) VALUES ${valuesClause.join(', ')}`;
             
@@ -89,7 +87,7 @@ app.post('/api/ingest-bulk', async (req, res) => {
         res.json({ success: true, message: `Successfully ingested ${totalInserted} records across chunks without performance degradation.` });
 
     } catch (error) {
-        await client.query('ROLLBACK'); // Rollback transaction on any failure
+        await client.query('ROLLBACK'); // Rollback transaction on failure
         console.error('Bulk Ingestion Error:', error);
         res.status(500).json({ error: 'Database bulk insertion failed.', details: error.message });
     } finally {
