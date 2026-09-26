@@ -9,17 +9,16 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors());
-app.use(express.json({ limit: '50mb' })); // Large payload limit for enterprise data files
+app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// PostgreSQL Connection Pool Setup
+// PostgreSQL Connection Pool
 const pool = new Pool({
     user: process.env.DB_USER || 'postgres',
     host: process.env.DB_HOST || 'localhost',
     database: process.env.DB_NAME || 'data_flow_portal',
     password: process.env.DB_PASSWORD || 'your_postgres_password',
     port: process.env.DB_PORT || 5432,
-    ssl: process.env.DB_HOST && process.env.DB_HOST.includes('supabase') ? { rejectUnauthorized: false } : false
 });
 
 // Verify PostgreSQL Connection on Startup
@@ -31,20 +30,18 @@ pool.query('SELECT NOW()', (err, res) => {
     }
 });
 
-// Configure Nodemailer Mail Transporter
+// Universal SMTP Transporter (Supports Gmail, Yahoo, Outlook, and custom domains)
 const transporter = nodemailer.createTransport({
     host: process.env.MAIL_HOST || 'smtp.gmail.com',
     port: process.env.MAIL_PORT || 587,
-    secure: false, // true for 465, false for other ports
+    secure: false, // true for 465, false for 587
     auth: {
-        user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASS,
+        user: process.env.MAIL_USER, // System sender email
+        pass: process.env.MAIL_PASS, // App password or SMTP credential
     },
 });
 
 // ==================== BIG DATA CHUNKING UTILITY ====================
-// Splits massive arrays (millions of records) into controlled batches (e.g., 1,000 rows each)
-// to prevent memory exhaustion, request hanging, and database crashes.
 const chunkArray = (array, size) => {
     let result = [];
     for (let i = 0; i < array.length; i += size) {
@@ -55,12 +52,12 @@ const chunkArray = (array, size) => {
 
 // ==================== API ENDPOINTS ====================
 
-// Test API Route
+// Test Health Check
 app.get('/api/health', (req, res) => {
     res.json({ status: 'online', service: 'Data Flow Portal API - Keezy Technologies' });
 });
 
-// Real Email Dispatch Endpoint for Forgot Password
+// Universal Password Reset Endpoint for Any User Email (Gmail, Yahoo, Outlook, etc.)
 app.post('/api/forgot-password', async (req, res) => {
     const { email } = req.body;
 
@@ -69,25 +66,21 @@ app.post('/api/forgot-password', async (req, res) => {
     }
 
     try {
-        // 1. Generate a secure random token
         const resetToken = Math.random().toString(36).substring(2) + Date.now();
-        
-        // 2. Construct the reset link pointing to your portal
         const resetLink = `http://localhost:5000/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
 
-        // 3. Send the physical email via Nodemailer
         const mailOptions = {
-            from: '"Data Flow Portal Security" <no-reply@keezytech.com>',
-            to: email,
+            from: `"Data Flow Portal Security" <${process.env.MAIL_USER}>`,
+            to: email, // Delivers to any provider domain globally
             subject: 'Password Reset Request - Data Flow Portal',
             html: `
                 <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
                     <h2 style="color: #4f46e5;">Data Flow Portal Security</h2>
                     <p>Hello,</p>
-                    <p>We received a request to reset your password for your Data Flow Portal enterprise workspace.</p>
-                    <p>Click the secure button below to set a new password:</p>
+                    <p>We received a request to reset your password for your enterprise account (${email}).</p>
+                    <p>Click the secure button below to update your password:</p>
                     <a href="${resetLink}" style="background-color: #4f46e5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold; margin: 15px 0;">Reset Your Password</a>
-                    <p>If you did not request this password reset, please ignore this email.</p>
+                    <p>If you did not request this, please ignore this email.</p>
                     <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
                     <p style="font-size: 11px; color: #888;">Developed by Keezy Technologies © 2026</p>
                 </div>
@@ -99,11 +92,11 @@ app.post('/api/forgot-password', async (req, res) => {
 
     } catch (error) {
         console.error('Mail Dispatch Error:', error);
-        res.status(500).json({ error: 'Failed to send reset email.', details: error.message });
+        res.status(500).json({ error: 'Failed to send reset email via SMTP provider.', details: error.message });
     }
 });
 
-// High-Performance Bulk Data Ingestion Endpoint (Handles Millions of Rows)
+// High-Performance Bulk Data Ingestion Endpoint
 app.post('/api/ingest-bulk', async (req, res) => {
     const { datasetName, tenant, department, rows } = req.body;
 
@@ -113,9 +106,8 @@ app.post('/api/ingest-bulk', async (req, res) => {
 
     const client = await pool.connect();
     try {
-        await client.query('BEGIN'); // Start transaction for atomic bulk operations
+        await client.query('BEGIN');
 
-        // 1. Chunk records into safe batches of 1,000 rows per batch
         const batches = chunkArray(rows, 1000);
         let totalInserted = 0;
 
@@ -138,11 +130,11 @@ app.post('/api/ingest-bulk', async (req, res) => {
             totalInserted += batch.length;
         }
 
-        await client.query('COMMIT'); // Commit transaction
+        await client.query('COMMIT');
         res.json({ success: true, message: `Successfully ingested ${totalInserted} records across chunks without performance degradation.` });
 
     } catch (error) {
-        await client.query('ROLLBACK'); // Rollback transaction on failure
+        await client.query('ROLLBACK');
         console.error('Bulk Ingestion Error:', error);
         res.status(500).json({ error: 'Database bulk insertion failed.', details: error.message });
     } finally {
