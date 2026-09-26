@@ -56,7 +56,7 @@ const chunkArray = (array, size) => {
 
 // ==================== API ENDPOINTS ====================
 
-// Explicit Route to serve index.html at root using absolute path
+// Explicit Root Route to serve index.html
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
