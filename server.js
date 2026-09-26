@@ -57,16 +57,9 @@ const chunkArray = (array, size) => {
 
 // ==================== API ENDPOINTS ====================
 
-// Explicit Root Route with File Existence Debugging Check (MUST BE BEFORE app.listen)
+// Serve index.html directly as the root homepage
 app.get('/', (req, res) => {
-    const filePath = path.join(__dirname, 'index.html');
-    console.log("🔍 Attempting to load frontend file from:", filePath);
-
-    if (fs.existsSync(filePath)) {
-        res.sendFile(filePath);
-    } else {
-        res.status(404).send(`❌ Error: index.html was not found in this directory (${__dirname}). Please verify your file placement.`);
-    }
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Test Health Check
@@ -210,7 +203,7 @@ app.post('/api/ingest-bulk', async (req, res) => {
     }
 });
 
-// Start Express Server (MUST BE AT THE VERY BOTTOM AFTER ALL ROUTES)
+// Start Express Server
 app.listen(PORT, () => {
     console.log(`🚀 Data Flow Portal Backend running live on http://localhost:${PORT}`);
 });
