@@ -11,7 +11,7 @@
 </head>
 <body class="bg-slate-900 text-slate-800 font-sans min-h-screen flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
 
-    <!-- ==================== LOGIN SCREEN VIEW ==================== -->
+    <!-- ==================== LOGIN / REGISTRATION SCREEN VIEW ==================== -->
     <div id="loginScreen" class="fixed inset-0 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 md:p-6 z-50 overflow-y-auto">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden grid grid-cols-1 md:grid-cols-2 my-auto border border-slate-700/50">
             
@@ -27,34 +27,53 @@
                 </div>
                 
                 <div class="my-6 sm:my-auto space-y-2">
-                    <h3 class="text-lg sm:text-xl font-semibold">Create Your Account</h3>
-                    <p class="text-xs text-indigo-200 leading-relaxed max-w-xs">Create, Discover and Share Your Files with ease across enterprise networks.</p>
+                    <h3 id="panelTitle" class="text-lg sm:text-xl font-semibold">Create Your Account</h3>
+                    <p id="panelDesc" class="text-xs text-indigo-200 leading-relaxed max-w-xs">Create, Discover and Share Your Files with ease across enterprise networks.</p>
                 </div>
 
-                <div class="text-[11px] text-indigo-300 pt-3 sm:pt-4 border-t border-indigo-600/50 w-full">
-                    Protected Enterprise Network
+                <div class="text-[11px] text-indigo-300 pt-3 sm:pt-4 border-t border-indigo-600/50 w-full flex justify-between items-center">
+                    <span>Protected Enterprise Network</span>
+                    <button onclick="toggleAuthMode()" id="switchModeBtn" class="underline hover:text-white font-medium text-xs">Existing user? Log In</button>
                 </div>
             </div>
 
             <!-- Right Form Panel -->
             <div class="p-6 sm:p-8 flex flex-col justify-between bg-white">
                 <div class="space-y-1 mb-4 sm:mb-6">
-                    <h3 class="text-base sm:text-lg font-bold text-slate-900">WELCOME TO THE DATA FLOW PORTAL</h3>
-                    <p class="text-xs text-slate-500">Login using your domain credentials</p>
+                    <h3 id="formHeading" class="text-base sm:text-lg font-bold text-slate-900">CREATE YOUR PORTAL ACCOUNT</h3>
+                    <p id="formSubheading" class="text-xs text-slate-500">Register a new profile to access the data pipeline</p>
                 </div>
 
-                <form onsubmit="handleLogin(event)" class="space-y-4 my-auto">
+                <!-- DYNAMIC FORM (Switches between Login and Register) -->
+                <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-4 my-auto">
+                    <!-- Name field (Only for registration) -->
+                    <div id="nameFieldContainer">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Full Name</label>
+                        <input type="text" id="regName" placeholder="Enter your full name" class="w-full text-sm border border-slate-300 rounded-lg p-3 outline-none focus:border-indigo-600 transition bg-slate-50/50">
+                    </div>
+
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Email</label>
-                        <input type="email" id="loginEmail" required placeholder="Enter your email" class="w-full text-sm border border-slate-300 rounded-lg p-3 outline-none focus:border-indigo-600 transition bg-slate-50/50">
-                        <p class="text-[10px] text-slate-400 mt-1">Hint: use <span class="font-mono text-indigo-600">uploader@company.com</span>, <span class="font-mono text-indigo-600">maker@company.com</span>, or <span class="font-mono text-indigo-600">approver@company.com</span></p>
+                        <input type="email" id="authEmail" required placeholder="Enter your email" class="w-full text-sm border border-slate-300 rounded-lg p-3 outline-none focus:border-indigo-600 transition bg-slate-50/50">
                     </div>
+
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
-                        <input type="password" id="loginPassword" required placeholder="Enter your password" class="w-full text-sm border border-slate-300 rounded-lg p-3 outline-none focus:border-indigo-600 transition bg-slate-50/50">
+                        <input type="password" id="authPassword" required placeholder="Enter your password" class="w-full text-sm border border-slate-300 rounded-lg p-3 outline-none focus:border-indigo-600 transition bg-slate-50/50">
                     </div>
-                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-3 rounded-lg transition shadow-md shadow-indigo-600/20 active:scale-[0.99]">
-                        Log In
+
+                    <!-- Role selector (Only for registration) -->
+                    <div id="roleFieldContainer">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Assign Portal Role</label>
+                        <select id="regRole" class="w-full text-sm border border-slate-300 rounded-lg p-3 outline-none focus:border-indigo-600 transition bg-slate-50/50">
+                            <option value="uploader">Uploader (Ingestion Agent)</option>
+                            <option value="maker">Maker (Transformation Agent)</option>
+                            <option value="approver">Approver (Governance Officer)</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" id="authSubmitBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-3 rounded-lg transition shadow-md shadow-indigo-600/20 active:scale-[0.99]">
+                        Create Account
                     </button>
                 </form>
 
@@ -71,7 +90,7 @@
     <!-- ==================== MAIN PORTAL VIEW (Hidden until login) ==================== -->
     <div id="portalApp" class="hidden flex flex-col min-h-screen bg-slate-50 w-full">
         
-        <!-- Top Navigation Bar (Fully responsive for TV / Ultra-wide up to mobile) -->
+        <!-- Top Navigation Bar -->
         <header class="bg-indigo-900 text-white shadow-md sticky top-0 z-40">
             <div class="max-w-[1920px] mx-auto px-3 sm:px-6 py-3 flex justify-between items-center">
                 <div class="flex items-center space-x-2.5 sm:space-x-3">
@@ -96,7 +115,7 @@
             </div>
         </header>
 
-        <!-- Main Workspace Container (Scales up cleanly to 4K / TV screens using max-w-[1920px]) -->
+        <!-- Main Workspace Container -->
         <main class="max-w-[1920px] mx-auto px-3 sm:px-6 py-4 sm:py-6 flex-grow w-full grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
 
             <!-- Sidebar Info / Stats -->
@@ -210,13 +229,21 @@
 
     <!-- JavaScript Application Logic -->
     <script>
-        let datasets = [
-            { id: 101, name: "Q1 Payroll Structure", dept: "Human Resources", uploader: "Jane Doe (Uploader)", status: "Uploaded" },
-            { id: 102, name: "Regional Supply Volumes", dept: "Supply Chain & Logistics", uploader: "Mark Smith (Uploader)", status: "Loaded" },
-            { id: 103, name: "Q4 Revenue Projections", dept: "Finance & Accounts", uploader: "Alice Johnson (Uploader)", status: "Approved" }
+        // Database simulation stores
+        let users = JSON.parse(localStorage.getItem('keez_users')) || [
+            { name: "Jane Uploader", email: "uploader@company.com", password: "password123", role: "uploader" },
+            { name: "Mark Maker", email: "maker@company.com", password: "password123", role: "maker" },
+            { name: "Alice Approver", email: "approver@company.com", password: "password123", role: "approver" }
+        ];
+
+        let datasets = JSON.parse(localStorage.getItem('keez_datasets')) || [
+            { id: 101, name: "Q1 Payroll Structure", dept: "Human Resources", uploader: "Jane Uploader (Uploader)", status: "Uploaded" },
+            { id: 102, name: "Regional Supply Volumes", dept: "Supply Chain & Logistics", uploader: "Mark Maker (Maker)", status: "Loaded" },
+            { id: 103, name: "Q4 Revenue Projections", dept: "Finance & Accounts", uploader: "Alice Approver (Approver)", status: "Approved" }
         ];
 
         let currentUser = null;
+        let isRegisterMode = true; // Starts in "Create Account" mode
 
         const roleHelpTexts = {
             uploader: "<strong>Uploader Workspace:</strong> You have permissions to upload raw tables/files from your department into the system staging area. Files are initialized with the <i>'Uploaded'</i> status.",
@@ -224,42 +251,92 @@
             approver: "<strong>Approver Workspace:</strong> You maintain governance oversight. Review loaded data tables and execute the final sign-off to push records live (updates status to <i>'Approved'</i>)."
         };
 
-        function handleLogin(event) {
-            event.preventDefault();
-            const email = document.getElementById('loginEmail').value.trim().toLowerCase();
-            
-            let role = 'uploader';
-            let name = 'Portal User';
+        function toggleAuthMode() {
+            isRegisterMode = !isRegisterMode;
+            const nameField = document.getElementById('nameFieldContainer');
+            const roleField = document.getElementById('roleFieldContainer');
+            const panelTitle = document.getElementById('panelTitle');
+            const panelDesc = document.getElementById('panelDesc');
+            const formHeading = document.getElementById('formHeading');
+            const formSubheading = document.getElementById('formSubheading');
+            const authSubmitBtn = document.getElementById('authSubmitBtn');
+            const switchBtn = document.getElementById('switchModeBtn');
 
-            if (email.includes('maker')) {
-                role = 'maker';
-                name = 'Data Maker Agent';
-            } else if (email.includes('approver') || email.includes('admin')) {
-                role = 'approver';
-                name = 'Governance Approver';
+            if(isRegisterMode) {
+                nameField.style.display = 'block';
+                roleField.style.display = 'block';
+                document.getElementById('regName').required = true;
+                panelTitle.innerText = "Create Your Account";
+                panelDesc.innerText = "Create, Discover and Share Your Files with ease across enterprise networks.";
+                formHeading.innerText = "CREATE YOUR PORTAL ACCOUNT";
+                formSubheading.innerText = "Register a new profile to access the data pipeline";
+                authSubmitBtn.innerText = "Create Account";
+                switchBtn.innerText = "Existing user? Log In";
             } else {
-                role = 'uploader';
-                name = 'Data Ingestion Uploader';
+                nameField.style.display = 'none';
+                roleField.style.display = 'none';
+                document.getElementById('regName').required = false;
+                panelTitle.innerText = "Welcome Back";
+                panelDesc.innerText = "Log in using your registered domain credentials.";
+                formHeading.innerText = "WELCOME TO THE DATA FLOW PORTAL";
+                formSubheading.innerText = "Login using your email and password";
+                authSubmitBtn.innerText = "Log In";
+                switchBtn.innerText = "New user? Create Account";
             }
+        }
 
-            currentUser = { email, role, name };
+        function handleAuthSubmit(event) {
+            event.preventDefault();
+            const email = document.getElementById('authEmail').value.trim().toLowerCase();
+            const password = document.getElementById('authPassword').value;
+
+            if (isRegisterMode) {
+                // Registration Flow
+                const name = document.getElementById('regName').value.trim();
+                const role = document.getElementById('regRole').value;
+
+                const existingUser = users.find(u => u.email === email);
+                if(existingUser) {
+                    alert("An account with this email already exists! Please log in.");
+                    return;
+                }
+
+                const newUser = { name, email, password, role };
+                users.push(newUser);
+                localStorage.setItem('keez_users', JSON.stringify(users));
+
+                alert("Account successfully created! Logging you in...");
+                loginUser(newUser);
+            } else {
+                // Login Flow
+                const foundUser = users.find(u => u.email === email && u.password === password);
+                if(!foundUser) {
+                    alert("Invalid email or password. Please check your credentials or create an account.");
+                    return;
+                }
+                loginUser(foundUser);
+            }
+        }
+
+        function loginUser(userObj) {
+            currentUser = userObj;
 
             document.getElementById('loginScreen').classList.add('hidden');
             document.getElementById('portalApp').classList.remove('hidden');
 
-            document.getElementById('navUserName').innerText = name;
-            document.getElementById('navUserRole').innerText = role.toUpperCase() + " ACCESS";
+            document.getElementById('navUserName').innerText = userObj.name;
+            document.getElementById('navUserRole').innerText = userObj.role.toUpperCase() + " ACCESS";
 
             document.querySelectorAll('.role-view').forEach(el => el.classList.add('hidden'));
-            document.getElementById(`view${role.charAt(0).toUpperCase() + role.slice(1)}`).classList.remove('hidden');
-            document.getElementById('roleHelpCard').innerHTML = roleHelpTexts[role];
+            document.getElementById(`view${userObj.role.charAt(0).toUpperCase() + userObj.role.slice(1)}`).classList.remove('hidden');
+            document.getElementById('roleHelpCard').innerHTML = roleHelpTexts[userObj.role];
 
             renderAll();
         }
 
         function handleLogout() {
             currentUser = null;
-            document.getElementById('loginPassword').value = '';
+            document.getElementById('authPassword').value = '';
             document.getElementById('portalApp').classList.add('hidden');
             document.getElementById('loginScreen').classList.remove('hidden');
         }
@@ -276,11 +353,12 @@
                 id: Math.floor(100 + Math.random() * 900),
                 name: name,
                 dept: dept,
-                uploader: currentUser.name,
+                uploader: currentUser.name + " (" + currentUser.role + ")",
                 status: "Uploaded"
             };
 
             datasets.push(newRecord);
+            localStorage.setItem('keez_datasets', JSON.stringify(datasets));
             document.getElementById('uploadForm').reset();
             alert("Dataset successfully ingested to staging pipeline!");
             renderAll();
@@ -290,6 +368,7 @@
             const item = datasets.find(d => d.id === id);
             if(item) {
                 item.status = "Loaded";
+                localStorage.setItem('keez_datasets', JSON.stringify(datasets));
                 renderAll();
             }
         }
@@ -298,6 +377,7 @@
             const item = datasets.find(d => d.id === id);
             if(item) {
                 item.status = "Approved";
+                localStorage.setItem('keez_datasets', JSON.stringify(datasets));
                 renderAll();
             }
         }
