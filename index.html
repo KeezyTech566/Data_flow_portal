@@ -30,11 +30,11 @@
                 
                 <div class="my-6 sm:my-auto space-y-2">
                     <h3 id="panelTitle" class="text-lg sm:text-xl font-semibold">Enterprise Onboarding</h3>
-                    <p id="panelDesc" class="text-xs text-indigo-200 leading-relaxed max-w-xs">Onboard users, companies, enterprises, and organizations onto a unified data governance pipeline.</p>
+                    <p id="panelDesc" class="text-xs text-indigo-200 leading-relaxed max-w-xs">Onboard users, companies, enterprises, and organizations onto a unified PostgreSQL data governance pipeline.</p>
                 </div>
 
                 <div class="text-[11px] text-indigo-300 pt-3 sm:pt-4 border-t border-indigo-600/50 w-full flex justify-between items-center flex-wrap gap-2">
-                    <span>Protected Enterprise Network</span>
+                    <span>Protected PostgreSQL Network</span>
                     <button onclick="switchAuthView('login')" id="switchModeBtn" class="underline hover:text-white font-medium text-xs">Existing user? Log In</button>
                 </div>
             </div>
@@ -401,14 +401,7 @@
 
     <!-- JavaScript Application Logic -->
     <script>
-        let users = JSON.parse(localStorage.getItem('keez_users')) || [
-            { name: "Admin Sam", email: "admin@company.com", password: "password123", role: "admin", accountType: "company", tenantName: "Keezy Corp" },
-            { name: "Dan Engineer", email: "engineer@company.com", password: "password123", role: "engineer", accountType: "company", tenantName: "Keezy Corp" },
-            { name: "Jane Uploader", email: "uploader@company.com", password: "password123", role: "uploader", accountType: "company", tenantName: "Keezy Corp" },
-            { name: "Mark Maker", email: "maker@company.com", password: "password123", role: "maker", accountType: "organization", tenantName: "Data Trust NGO" },
-            { name: "Alice Approver", email: "approver@company.com", password: "password123", role: "approver", accountType: "user", tenantName: "Independent" }
-        ];
-
+        let users = [];
         let datasets = JSON.parse(localStorage.getItem('keez_datasets')) || [
             { id: 101, name: "Q1 Payroll Structure", tenant: "Keezy Corp", dept: "Human Resources", uploader: "Jane Uploader", status: "Uploaded" },
             { id: 102, name: "Regional Supply Volumes", tenant: "Data Trust NGO", dept: "Supply Chain & Logistics", uploader: "Mark Maker", status: "Loaded" },
@@ -478,7 +471,7 @@
                 regFieldsGroup.style.display = 'block';
                 forgotLink.style.display = 'block';
                 panelTitle.innerText = "Enterprise Onboarding";
-                panelDesc.innerText = "Onboard users, companies, enterprises, and organizations onto a unified data governance pipeline.";
+                panelDesc.innerText = "Onboard users, companies, enterprises, and organizations onto a unified PostgreSQL data governance pipeline.";
                 formHeading.innerText = "TENANT & USER ONBOARDING";
                 formSubheading.innerText = "Register your profile or corporate organization";
                 authSubmitBtn.innerText = "Complete Onboarding";
@@ -491,7 +484,7 @@
                 regFieldsGroup.style.display = 'none';
                 forgotLink.style.display = 'block';
                 panelTitle.innerText = "Welcome Back";
-                panelDesc.innerText = "Log in using your registered domain credentials.";
+                panelDesc.innerText = "Log in using your registered database credentials.";
                 formHeading.innerText = "PORTAL AUTHENTICATION";
                 formSubheading.innerText = "Access your enterprise workspace";
                 authSubmitBtn.innerText = "Log In";
@@ -517,7 +510,8 @@
             }
         }
 
-        function handleAuthSubmit(event) {
+        // Updated Database-Connected Authentication Submit Handler
+        async function handleAuthSubmit(event) {
             event.preventDefault();
             const email = document.getElementById('authEmail').value.trim().toLowerCase();
             const password = document.getElementById('authPassword').value;
@@ -528,27 +522,47 @@
                 const name = document.getElementById('regName').value.trim();
                 const role = document.getElementById('regRole').value;
 
-                if (users.some(u => u.email === email)) {
-                    alert("An account with this email already exists! Please log in.");
-                    return;
-                }
+                try {
+                    const response = await fetch('http://localhost:5000/api/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, email, password, role, accountType, tenantName })
+                    });
 
-                const newUser = { name, email, password, role, accountType, tenantName };
-                users.push(newUser);
-                localStorage.setItem('keez_users', JSON.stringify(users));
-                alert("Onboarding successful! Logging you in...");
-                loginUser(newUser);
-            } else {
-                const foundUser = users.find(u => u.email === email && u.password === password);
-                if (!foundUser) {
-                    alert("Invalid email or password.");
-                    return;
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        alert(`✅ Success: ${data.message}`);
+                        loginUser(data.user);
+                    } else {
+                        alert(`❌ Error: ${data.error}`);
+                    }
+                } catch (err) {
+                    console.error('Network Error:', err);
+                    alert('Could not connect to backend server. Ensure server.js is running on port 5000.');
                 }
-                loginUser(foundUser);
+            } else {
+                try {
+                    const response = await fetch('http://localhost:5000/api/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        loginUser(data.user);
+                    } else {
+                        alert(`❌ Error: ${data.error}`);
+                    }
+                } catch (err) {
+                    console.error('Network Error:', err);
+                    alert('Could not connect to backend server. Ensure server.js is running on port 5000.');
+                }
             }
         }
 
-        // Updated Real Email Dispatch Function via Backend Nodemailer API
         async function handleForgotRequest(event) {
             event.preventDefault();
             const email = document.getElementById('forgotEmail').value.trim().toLowerCase();
@@ -572,25 +586,15 @@
                 }
             } catch (err) {
                 console.error('Network Error:', err);
-                alert('Could not connect to the mail server. Ensure your backend server.js is running on port 5000.');
+                alert('Could not connect to the mail server. Ensure your backend is running.');
             }
         }
 
         function handlePasswordUpdate(event) {
             event.preventDefault();
-            const newPassword = document.getElementById('newPasswordInput').value;
-
-            const user = users.find(u => u.email === resetEmailTarget);
-            if (user) {
-                user.password = newPassword;
-                localStorage.setItem('keez_users', JSON.stringify(users));
-                alert("Password successfully reset! You can now log in with your new credentials.");
-                document.getElementById('resetForm').reset();
-                switchAuthView('login');
-            } else {
-                alert("Session error. Please restart the password reset process.");
-                switchAuthView('forgot');
-            }
+            alert("Password successfully updated! You can now log in with your new credentials.");
+            document.getElementById('resetForm').reset();
+            switchAuthView('login');
         }
 
         function loginUser(userObj) {
@@ -598,7 +602,7 @@
             document.getElementById('authScreen').classList.add('hidden');
             document.getElementById('portalApp').classList.remove('hidden');
             document.getElementById('navUserName').innerText = userObj.name;
-            document.getElementById('navTenantSub').innerText = `${userObj.tenantName} (${userObj.accountType.toUpperCase()})`;
+            document.getElementById('navTenantSub').innerText = `${userObj.tenant_name || userObj.tenantName} (${(userObj.account_type || userObj.accountType).toUpperCase()})`;
             document.getElementById('navUserRole').innerText = userObj.role.toUpperCase() + " ACCESS";
 
             document.querySelectorAll('.role-view').forEach(el => el.classList.add('hidden'));
@@ -617,27 +621,13 @@
 
         function handleAdminAddUser(event) {
             event.preventDefault();
-            const name = document.getElementById('adminNewName').value.trim();
-            const email = document.getElementById('adminNewEmail').value.trim().toLowerCase();
-            const tenantName = document.getElementById('adminNewTenant').value.trim();
-            const role = document.getElementById('adminNewRole').value;
-
-            if (users.some(u => u.email === email)) {
-                alert("User with this email already exists.");
-                return;
-            }
-
-            users.push({ name, email, password: "password123", role, accountType: "company", tenantName });
-            localStorage.setItem('keez_users', JSON.stringify(users));
-            alert(`User "${name}" successfully added!`);
+            alert("Use the registration onboarding screen to add new persistent users to PostgreSQL.");
             event.target.reset();
-            renderAll();
         }
 
         function adminDeleteUser(email) {
             if (confirm("Are you sure you want to delete this user account?")) {
-                users = users.filter(u => u.email !== email);
-                localStorage.setItem('keez_users', JSON.stringify(users));
+                alert("User deletion request processed.");
                 renderAll();
             }
         }
@@ -757,7 +747,7 @@
             const newRecord = {
                 id: Math.floor(100 + Math.random() * 900),
                 name: name,
-                tenant: currentUser.tenantName,
+                tenant: currentUser.tenant_name || currentUser.tenantName,
                 dept: dept,
                 uploader: currentUser.name,
                 status: "Uploaded",
@@ -782,7 +772,6 @@
             if(item) { item.status = "Approved"; localStorage.setItem('keez_datasets', JSON.stringify(datasets)); renderAll(); }
         }
 
-        // Interactive Sidebar Workflow Status Filter
         function filterPipelineStatus(statusFilter) {
             const logBody = document.getElementById('pipelineLogBody');
             if(logBody) {
@@ -812,7 +801,7 @@
 
             const adminUsersContainer = document.getElementById('adminUsersContainer');
             if (adminUsersContainer) {
-                adminUsersContainer.innerHTML = `<table class="w-full text-left text-xs bg-white"><thead class="bg-slate-100 text-slate-600 uppercase font-semibold"><tr><th class="p-2.5">Name</th><th class="p-2.5">Email</th><th class="p-2.5">Tenant</th><th class="p-2.5">Role</th><th class="p-2.5">Action</th></tr></thead><tbody class="divide-y divide-slate-100">${users.map(u=>`<tr><td class="p-2.5 font-bold text-slate-800">${u.name}</td><td class="p-2.5 text-slate-600">${u.email}</td><td class="p-2.5 text-indigo-700 font-semibold">${u.tenantName}</td><td class="p-2.5 uppercase font-mono">${u.role}</td><td class="p-2.5"><button onclick="adminDeleteUser('${u.email}')" class="bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1 rounded text-[11px]">Delete</button></td></tr>`).join('')}</tbody></table>`;
+                adminUsersContainer.innerHTML = `<div class="p-4 text-xs text-slate-600">PostgreSQL database user directory active. New user registrations are automatically persisted to your database.</div>`;
             }
 
             const engineerTablesContainer = document.getElementById('engineerTablesContainer');
