@@ -3,6 +3,7 @@ const { Pool } = require('pg');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
@@ -56,9 +57,16 @@ const chunkArray = (array, size) => {
 
 // ==================== API ENDPOINTS ====================
 
-// Explicit Root Route to serve index.html
+// Explicit Root Route with File Existence Debugging Check
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    const filePath = path.join(__dirname, 'index.html');
+    console.log("🔍 Attempting to load frontend file from:", filePath);
+
+    if (fs.existsSync(filePath)) {
+        res.sendFile(filePath);
+    } else {
+        res.status(404).send(`❌ Error: index.html was not found in this directory (${__dirname}). Please verify your file placement.`);
+    }
 });
 
 // Test Health Check
