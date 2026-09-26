@@ -8,11 +8,13 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SheetJS Library for Universal File Parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body class="bg-slate-900 text-slate-800 font-sans min-h-screen flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
 
-    <!-- ==================== LOGIN / REGISTRATION SCREEN VIEW ==================== -->
-    <div id="loginScreen" class="fixed inset-0 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 md:p-6 z-50 overflow-y-auto">
+    <!-- ==================== AUTH SCREEN ==================== -->
+    <div id="authScreen" class="fixed inset-0 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 md:p-6 z-50 overflow-y-auto">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden grid grid-cols-1 md:grid-cols-2 my-auto border border-slate-700/50">
             
             <!-- Left Brand Panel -->
@@ -27,57 +29,109 @@
                 </div>
                 
                 <div class="my-6 sm:my-auto space-y-2">
-                    <h3 id="panelTitle" class="text-lg sm:text-xl font-semibold">Create Your Account</h3>
-                    <p id="panelDesc" class="text-xs text-indigo-200 leading-relaxed max-w-xs">Create, Discover and Share Your Files with ease across enterprise networks.</p>
+                    <h3 id="panelTitle" class="text-lg sm:text-xl font-semibold">Enterprise Onboarding</h3>
+                    <p id="panelDesc" class="text-xs text-indigo-200 leading-relaxed max-w-xs">Onboard users, companies, enterprises, and organizations onto a unified data governance pipeline.</p>
                 </div>
 
-                <div class="text-[11px] text-indigo-300 pt-3 sm:pt-4 border-t border-indigo-600/50 w-full flex justify-between items-center">
+                <div class="text-[11px] text-indigo-300 pt-3 sm:pt-4 border-t border-indigo-600/50 w-full flex justify-between items-center flex-wrap gap-2">
                     <span>Protected Enterprise Network</span>
-                    <button onclick="toggleAuthMode()" id="switchModeBtn" class="underline hover:text-white font-medium text-xs">Existing user? Log In</button>
+                    <button onclick="switchAuthView('login')" id="switchModeBtn" class="underline hover:text-white font-medium text-xs">Existing user? Log In</button>
                 </div>
             </div>
 
             <!-- Right Form Panel -->
             <div class="p-6 sm:p-8 flex flex-col justify-between bg-white">
                 <div class="space-y-1 mb-4 sm:mb-6">
-                    <h3 id="formHeading" class="text-base sm:text-lg font-bold text-slate-900">CREATE YOUR PORTAL ACCOUNT</h3>
-                    <p id="formSubheading" class="text-xs text-slate-500">Register a new profile to access the data pipeline</p>
+                    <h3 id="formHeading" class="text-base sm:text-lg font-bold text-slate-900">TENANT & USER ONBOARDING</h3>
+                    <p id="formSubheading" class="text-xs text-slate-500">Register your profile or corporate organization</p>
                 </div>
 
-                <!-- DYNAMIC FORM (Switches between Login and Register) -->
-                <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-4 my-auto">
-                    <!-- Name field (Only for registration) -->
-                    <div id="nameFieldContainer">
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Full Name</label>
-                        <input type="text" id="regName" placeholder="Enter your full name" class="w-full text-sm border border-slate-300 rounded-lg p-3 outline-none focus:border-indigo-600 transition bg-slate-50/50">
-                    </div>
+                <div class="my-auto">
+                    <!-- 1. Login & Registration Form -->
+                    <form id="mainAuthForm" onsubmit="handleAuthSubmit(event)" class="space-y-3.5">
+                        <div id="regFieldsGroup" class="space-y-3.5">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Onboarding Account Type</label>
+                                <select id="regAccountType" onchange="toggleAccountTypeFields()" class="w-full text-sm border border-slate-300 rounded-lg p-2.5 outline-none focus:border-indigo-600 transition bg-slate-50/50">
+                                    <option value="user">Individual User / Professional</option>
+                                    <option value="company">Company / Enterprise</option>
+                                    <option value="organization">Non-Profit / Organization</option>
+                                </select>
+                            </div>
 
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Email</label>
-                        <input type="email" id="authEmail" required placeholder="Enter your email" class="w-full text-sm border border-slate-300 rounded-lg p-3 outline-none focus:border-indigo-600 transition bg-slate-50/50">
-                    </div>
+                            <div id="tenantNameContainer" class="hidden">
+                                <label id="tenantLabel" class="block text-xs font-semibold text-slate-600 mb-1">Company / Enterprise Name</label>
+                                <input type="text" id="regTenantName" placeholder="e.g. Keezy Global Corp" class="w-full text-sm border border-slate-300 rounded-lg p-2.5 outline-none focus:border-indigo-600 transition bg-slate-50/50">
+                            </div>
 
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
-                        <input type="password" id="authPassword" required placeholder="Enter your password" class="w-full text-sm border border-slate-300 rounded-lg p-3 outline-none focus:border-indigo-600 transition bg-slate-50/50">
-                    </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Full Name (Admin / Contact)</label>
+                                <input type="text" id="regName" placeholder="Enter your full name" class="w-full text-sm border border-slate-300 rounded-lg p-2.5 outline-none focus:border-indigo-600 transition bg-slate-50/50">
+                            </div>
+                        </div>
 
-                    <!-- Role selector (Only for registration) -->
-                    <div id="roleFieldContainer">
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Assign Portal Role</label>
-                        <select id="regRole" class="w-full text-sm border border-slate-300 rounded-lg p-3 outline-none focus:border-indigo-600 transition bg-slate-50/50">
-                            <option value="uploader">Uploader (Ingestion Agent)</option>
-                            <option value="maker">Maker (Transformation Agent)</option>
-                            <option value="approver">Approver (Governance Officer)</option>
-                        </select>
-                    </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Work Email</label>
+                            <input type="email" id="authEmail" required placeholder="name@company.com" class="w-full text-sm border border-slate-300 rounded-lg p-2.5 outline-none focus:border-indigo-600 transition bg-slate-50/50">
+                        </div>
 
-                    <button type="submit" id="authSubmitBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-3 rounded-lg transition shadow-md shadow-indigo-600/20 active:scale-[0.99]">
-                        Create Account
-                    </button>
-                </form>
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="block text-xs font-semibold text-slate-600">Password</label>
+                                <button type="button" onclick="switchAuthView('forgot')" id="forgotPasswordLink" class="text-[11px] text-indigo-600 hover:underline font-medium">Forgot password?</button>
+                            </div>
+                            <input type="password" id="authPassword" required placeholder="Enter secure password" class="w-full text-sm border border-slate-300 rounded-lg p-2.5 outline-none focus:border-indigo-600 transition bg-slate-50/50">
+                        </div>
 
-                <div class="text-center pt-5 sm:pt-6 border-t border-slate-100 mt-5 sm:mt-6">
+                        <div id="roleFieldContainer">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Assign Portal Pipeline Role</label>
+                            <select id="regRole" class="w-full text-sm border border-slate-300 rounded-lg p-2.5 outline-none focus:border-indigo-600 transition bg-slate-50/50">
+                                <option value="admin">System Admin (Full DB & User Control)</option>
+                                <option value="engineer">Data Engineer (Cleaning, Star Schema & Power BI)</option>
+                                <option value="uploader">Uploader (Ingestion & Table Control)</option>
+                                <option value="maker">Maker (Transformation Agent)</option>
+                                <option value="approver">Approver (Governance Officer)</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" id="authSubmitBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-3 rounded-lg transition shadow-md shadow-indigo-600/20 active:scale-[0.99]">
+                            Complete Onboarding
+                        </button>
+                    </form>
+
+                    <!-- 2. Forgot Password Request Form (Mail Dispatch) -->
+                    <form id="forgotForm" onsubmit="handleForgotRequest(event)" class="space-y-4 hidden">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Registered Work Email</label>
+                            <input type="email" id="forgotEmail" required placeholder="name@company.com" class="w-full text-sm border border-slate-300 rounded-lg p-3 outline-none focus:border-indigo-600 transition bg-slate-50/50">
+                            <p class="text-[11px] text-slate-400 mt-1">We will generate a secure recovery token and send a reset link to your email inbox.</p>
+                        </div>
+                        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-3 rounded-lg transition shadow-md shadow-indigo-600/20">
+                            <i class="fa-solid fa-paper-plane mr-1.5"></i> Send Password Reset Mail
+                        </button>
+                        <div class="text-center pt-2">
+                            <button type="button" onclick="switchAuthView('login')" class="text-xs text-slate-500 hover:text-indigo-600 font-medium">
+                                <i class="fa-solid fa-arrow-left mr-1"></i> Back to Login
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- 3. New Password Reset Input Form -->
+                    <form id="resetForm" onsubmit="handlePasswordUpdate(event)" class="space-y-4 hidden">
+                        <div class="bg-indigo-50 border border-indigo-100 p-3 rounded-lg text-xs text-indigo-900">
+                            <i class="fa-solid fa-envelope-circle-check text-indigo-600 mr-1"></i> Recovery token verified for <strong id="resetTargetEmail"></strong>. Enter your new password below.
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">New Secure Password</label>
+                            <input type="password" id="newPasswordInput" required placeholder="Enter new password" class="w-full text-sm border border-slate-300 rounded-lg p-3 outline-none focus:border-indigo-600 transition bg-slate-50/50">
+                        </div>
+                        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold py-3 rounded-lg transition shadow-md shadow-emerald-600/20">
+                            <i class="fa-solid fa-lock mr-1.5"></i> Update Password & Log In
+                        </button>
+                    </form>
+                </div>
+
+                <div class="text-center pt-4 border-t border-slate-100 mt-4">
                     <p class="text-[11px] text-slate-400 leading-tight">
                         Copyright &copy; 2026 Data Flow Portal developed by Keezy Technologies. All rights reserved.
                     </p>
@@ -87,7 +141,7 @@
     </div>
 
 
-    <!-- ==================== MAIN PORTAL VIEW (Hidden until login) ==================== -->
+    <!-- ==================== MAIN PORTAL VIEW ==================== -->
     <div id="portalApp" class="hidden flex flex-col min-h-screen bg-slate-50 w-full">
         
         <!-- Top Navigation Bar -->
@@ -97,11 +151,10 @@
                     <div class="bg-indigo-600 p-2 rounded-lg text-lg sm:text-xl font-bold"><i class="fa-solid fa-layer-group"></i></div>
                     <div>
                         <h1 class="text-base sm:text-lg font-bold tracking-wide">Data Flow Portal</h1>
-                        <p class="text-[10px] sm:text-xs text-indigo-300">Data Governance & Pipeline System</p>
+                        <p id="navTenantSub" class="text-[10px] sm:text-xs text-indigo-300">Enterprise Tenant Workspace</p>
                     </div>
                 </div>
                 
-                <!-- User Profile & Logout -->
                 <div class="flex items-center space-x-3 sm:space-x-4">
                     <div class="text-right hidden sm:block">
                         <p id="navUserName" class="text-xs font-bold text-indigo-200">User Name</p>
@@ -115,10 +168,10 @@
             </div>
         </header>
 
-        <!-- Main Workspace Container -->
+        <!-- Workspace Container -->
         <main class="max-w-[1920px] mx-auto px-3 sm:px-6 py-4 sm:py-6 flex-grow w-full grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
 
-            <!-- Sidebar Info / Stats -->
+            <!-- Sidebar -->
             <div class="lg:col-span-1 space-y-4">
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
                     <h2 class="text-xs sm:text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Workflow Status</h2>
@@ -138,21 +191,107 @@
                     </div>
                 </div>
 
-                <div id="roleHelpCard" class="bg-indigo-50 border border-indigo-100 p-4 rounded-xl text-xs text-indigo-900 leading-relaxed">
-                    <!-- Dynamic role description -->
-                </div>
+                <div id="roleHelpCard" class="bg-indigo-50 border border-indigo-100 p-4 rounded-xl text-xs text-indigo-900 leading-relaxed"></div>
             </div>
 
-            <!-- Dynamic Main Content Panel -->
+            <!-- Main Content Modules -->
             <div class="lg:col-span-3 space-y-4 sm:space-y-6">
+
+                <!-- ADMIN VIEW -->
+                <div id="viewAdmin" class="role-view hidden space-y-6">
+                    <div class="bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-slate-200 space-y-6">
+                        <div>
+                            <h2 class="text-base sm:text-lg font-bold text-slate-900 mb-1"><i class="fa-solid fa-users-gear text-indigo-600 mr-2"></i>System Admin User Management & Configuration</h2>
+                            <p class="text-xs text-slate-500">Onboard new enterprise users, assign access roles, configure tenant structures, or modify user accounts.</p>
+                        </div>
+
+                        <div class="border border-slate-200 p-4 rounded-xl bg-slate-50/50 space-y-3">
+                            <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wide"><i class="fa-solid fa-user-plus text-indigo-600 mr-1.5"></i>Onboard New User</h3>
+                            <form onsubmit="handleAdminAddUser(event)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 items-end">
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">Full Name</label>
+                                    <input type="text" id="adminNewName" required placeholder="User name" class="w-full text-xs border border-slate-300 rounded p-2 bg-white">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">Work Email</label>
+                                    <input type="email" id="adminNewEmail" required placeholder="user@company.com" class="w-full text-xs border border-slate-300 rounded p-2 bg-white">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">Tenant Name</label>
+                                    <input type="text" id="adminNewTenant" required placeholder="Enterprise Corp" class="w-full text-xs border border-slate-300 rounded p-2 bg-white">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">Pipeline Role</label>
+                                    <select id="adminNewRole" class="w-full text-xs border border-slate-300 rounded p-2 bg-white">
+                                        <option value="admin">System Admin</option>
+                                        <option value="engineer">Data Engineer</option>
+                                        <option value="uploader">Uploader</option>
+                                        <option value="maker">Maker</option>
+                                        <option value="approver">Approver</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium py-2 rounded transition">Add User</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="space-y-3">
+                            <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wide"><i class="fa-solid fa-id-card mr-1.5 text-indigo-600"></i>Active Enterprise Users Directory</h3>
+                            <div id="adminUsersContainer" class="overflow-x-auto border border-slate-200 rounded-lg"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DATA ENGINEER VIEW -->
+                <div id="viewEngineer" class="role-view hidden space-y-6">
+                    <div class="bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-slate-200 space-y-6">
+                        <div>
+                            <h2 class="text-base sm:text-lg font-bold text-slate-900 mb-1"><i class="fa-solid fa-network-wired text-indigo-600 mr-2"></i>Data Engineering & Star Schema Modeler</h2>
+                            <p class="text-xs text-slate-500">Identify ingested tables for data cleaning, build Fact and Dimension tables, and push models directly to Power BI.</p>
+                        </div>
+
+                        <div class="space-y-3">
+                            <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wide"><i class="fa-solid fa-broom mr-1.5 text-indigo-600"></i>Identified Tables for Cleaning</h3>
+                            <div id="engineerTablesContainer" class="overflow-x-auto border border-slate-200 rounded-lg"></div>
+                        </div>
+
+                        <div class="border border-indigo-100 bg-indigo-50/40 p-4 rounded-xl space-y-3">
+                            <h3 class="text-xs font-bold text-indigo-900 uppercase tracking-wide"><i class="fa-solid fa-shapes mr-1.5 text-indigo-600"></i>Create Fact & Dimension Schema</h3>
+                            <form onsubmit="handleFactDimCreate(event)" class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-700 mb-1">Model Name</label>
+                                    <input type="text" id="modelNameInput" required placeholder="e.g. Sales_Star_Schema" class="w-full text-xs border border-slate-300 rounded p-2 bg-white">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-700 mb-1">Schema Type</label>
+                                    <select id="schemaTypeSelect" class="w-full text-xs border border-slate-300 rounded p-2 bg-white">
+                                        <option value="Fact Table">Fact Table (Transactional / Metrics)</option>
+                                        <option value="Dimension Table">Dimension Table (Attributes / Master)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium py-2 rounded transition">Generate Model</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="space-y-3 pt-2">
+                            <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wide"><i class="fa-solid fa-chart-pie mr-1.5 text-amber-600"></i>Power BI Streaming & Dataset Staging</h3>
+                            <div id="powerBiContainer" class="overflow-x-auto border border-slate-200 rounded-lg"></div>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- UPLOADER VIEW -->
                 <div id="viewUploader" class="role-view hidden space-y-6">
-                    <div class="bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-slate-200">
-                        <h2 class="text-base sm:text-lg font-bold text-slate-900 mb-1"><i class="fa-solid fa-cloud-arrow-up text-indigo-600 mr-2"></i>Ingest New Data File</h2>
-                        <p class="text-xs text-slate-500 mb-4">Upload tabular raw files (CSV, Excel) into the staging layer for processing.</p>
+                    <div class="bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-slate-200 space-y-6">
+                        <div>
+                            <h2 class="text-base sm:text-lg font-bold text-slate-900 mb-1"><i class="fa-solid fa-cloud-arrow-up text-indigo-600 mr-2"></i>Uploader Table & Dataset Ingestion</h2>
+                            <p class="text-xs text-slate-500">Create datasets, parse files (.csv, .xlsx, .xls, .json), inspect data types, and manage table lifecycles.</p>
+                        </div>
                         
-                        <form id="uploadForm" onsubmit="handleUpload(event)" class="space-y-4">
+                        <form id="uploadForm" onsubmit="handleUpload(event)" class="space-y-4 border-b border-slate-100 pb-6">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-xs font-semibold text-slate-600 mb-1">Dataset / Table Name</label>
@@ -169,13 +308,41 @@
                                 </div>
                             </div>
                             <div>
-                                <label class="block text-xs font-semibold text-slate-600 mb-1">Data Source File</label>
-                                <input type="file" id="dataFile" required class="w-full text-xs sm:text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border border-slate-300 rounded-lg bg-slate-50">
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Data Source File (.csv, .xlsx, .xls, .json)</label>
+                                <input type="file" id="dataFile" accept=".csv, .xlsx, .xls, .json" required onchange="parseUploadedFile(event)" class="w-full text-xs sm:text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border border-slate-300 rounded-lg bg-slate-50">
                             </div>
+
+                            <div id="schemaInspectorContainer" class="hidden space-y-3 pt-2">
+                                <h3 class="text-xs font-bold uppercase tracking-wide text-slate-700"><i class="fa-solid fa-table-columns text-indigo-600 mr-1.5"></i>Detected Columns & Data Type Mapper</h3>
+                                <div class="overflow-x-auto border border-slate-200 rounded-lg max-h-60">
+                                    <table class="w-full text-left text-xs">
+                                        <thead class="bg-slate-100 text-slate-600 sticky top-0">
+                                            <tr>
+                                                <th class="p-2.5">Column Name</th>
+                                                <th class="p-2.5">Sample Value</th>
+                                                <th class="p-2.5">Auto-Detected Type</th>
+                                                <th class="p-2.5">Change Data Type To</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="schemaTableBody" class="divide-y divide-slate-100 bg-white"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+
                             <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition shadow-sm w-full sm:w-auto">
-                                <i class="fa-solid fa-upload mr-1.5"></i> Submit to Staging Pipeline
+                                <i class="fa-solid fa-upload mr-1.5"></i> Create & Submit Dataset
                             </button>
                         </form>
+
+                        <div class="space-y-3">
+                            <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wide"><i class="fa-solid fa-table-list mr-1.5 text-indigo-600"></i>Active Created Tables & Deletion Control</h3>
+                            <div id="uploaderTablesManager" class="overflow-x-auto border border-slate-200 rounded-lg"></div>
+                        </div>
+
+                        <div class="space-y-3 pt-2">
+                            <h3 class="text-xs font-bold text-amber-700 uppercase tracking-wide"><i class="fa-solid fa-trash-arrow-up mr-1.5"></i>Trash / Recycle Bin (Deleted Tables Recovery)</h3>
+                            <div id="trashBinContainer" class="overflow-x-auto border border-amber-200 rounded-lg bg-amber-50/30"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -183,7 +350,7 @@
                 <div id="viewMaker" class="role-view hidden space-y-6">
                     <div class="bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-slate-200">
                         <h2 class="text-base sm:text-lg font-bold text-slate-900 mb-1"><i class="fa-solid fa-gears text-blue-600 mr-2"></i>Maker Data Transformation & Load</h2>
-                        <p class="text-xs text-slate-500 mb-4">Review raw ingested tables, verify formatting, and push them to pre-approval staging.</p>
+                        <p class="text-xs text-slate-500 mb-4">Review raw ingested tables, verify schema mapping, and push them to pre-approval staging.</p>
                         <div id="makerTableContainer" class="overflow-x-auto"></div>
                     </div>
                 </div>
@@ -197,7 +364,7 @@
                     </div>
                 </div>
 
-                <!-- Central Data Pipeline Tracker Log -->
+                <!-- Active Pipeline Tracker Log -->
                 <div class="bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-slate-200">
                     <h3 class="text-xs sm:text-sm font-bold text-slate-800 uppercase tracking-wide mb-3"><i class="fa-solid fa-timeline mr-2 text-indigo-600"></i>Active Pipeline Tracker Log</h3>
                     <div class="overflow-x-auto">
@@ -206,14 +373,12 @@
                                 <tr>
                                     <th class="p-3">ID</th>
                                     <th class="p-3">Dataset Name</th>
+                                    <th class="p-3">Tenant / Organization</th>
                                     <th class="p-3">Department</th>
-                                    <th class="p-3">Uploader</th>
                                     <th class="p-3">Current Status</th>
                                 </tr>
                             </thead>
-                            <tbody id="pipelineLogBody" class="divide-y divide-slate-100">
-                                <!-- Populated dynamically -->
-                            </tbody>
+                            <tbody id="pipelineLogBody" class="divide-y divide-slate-100"></tbody>
                         </table>
                     </div>
                 </div>
@@ -229,59 +394,119 @@
 
     <!-- JavaScript Application Logic -->
     <script>
-        // Database simulation stores
         let users = JSON.parse(localStorage.getItem('keez_users')) || [
-            { name: "Jane Uploader", email: "uploader@company.com", password: "password123", role: "uploader" },
-            { name: "Mark Maker", email: "maker@company.com", password: "password123", role: "maker" },
-            { name: "Alice Approver", email: "approver@company.com", password: "password123", role: "approver" }
+            { name: "Admin Sam", email: "admin@company.com", password: "password123", role: "admin", accountType: "company", tenantName: "Keezy Corp" },
+            { name: "Dan Engineer", email: "engineer@company.com", password: "password123", role: "engineer", accountType: "company", tenantName: "Keezy Corp" },
+            { name: "Jane Uploader", email: "uploader@company.com", password: "password123", role: "uploader", accountType: "company", tenantName: "Keezy Corp" },
+            { name: "Mark Maker", email: "maker@company.com", password: "password123", role: "maker", accountType: "organization", tenantName: "Data Trust NGO" },
+            { name: "Alice Approver", email: "approver@company.com", password: "password123", role: "approver", accountType: "user", tenantName: "Independent" }
         ];
 
         let datasets = JSON.parse(localStorage.getItem('keez_datasets')) || [
-            { id: 101, name: "Q1 Payroll Structure", dept: "Human Resources", uploader: "Jane Uploader (Uploader)", status: "Uploaded" },
-            { id: 102, name: "Regional Supply Volumes", dept: "Supply Chain & Logistics", uploader: "Mark Maker (Maker)", status: "Loaded" },
-            { id: 103, name: "Q4 Revenue Projections", dept: "Finance & Accounts", uploader: "Alice Approver (Approver)", status: "Approved" }
+            { id: 101, name: "Q1 Payroll Structure", tenant: "Keezy Corp", dept: "Human Resources", uploader: "Jane Uploader", status: "Uploaded" },
+            { id: 102, name: "Regional Supply Volumes", tenant: "Data Trust NGO", dept: "Supply Chain & Logistics", uploader: "Mark Maker", status: "Loaded" },
+            { id: 103, name: "Q4 Revenue Projections", tenant: "Independent", dept: "Finance & Accounts", uploader: "Alice Approver", status: "Approved" }
         ];
 
+        let starModels = JSON.parse(localStorage.getItem('keez_star_models')) || [
+            { id: 501, name: "Dim_Employees", type: "Dimension Table", status: "Ready for Power BI" },
+            { id: 502, name: "Fact_Sales_Transactions", type: "Fact Table", status: "Ready for Power BI" }
+        ];
+
+        let trashDatasets = JSON.parse(localStorage.getItem('keez_trash')) || [];
+
         let currentUser = null;
-        let isRegisterMode = true; // Starts in "Create Account" mode
+        let authState = 'register';
+        let resetEmailTarget = null;
+        let parsedSchemaColumns = [];
 
         const roleHelpTexts = {
-            uploader: "<strong>Uploader Workspace:</strong> You have permissions to upload raw tables/files from your department into the system staging area. Files are initialized with the <i>'Uploaded'</i> status.",
-            maker: "<strong>Maker Workspace:</strong> You review raw ingested files, execute data staging operations, and load payloads forward (updates status to <i>'Loaded'</i>).",
-            approver: "<strong>Approver Workspace:</strong> You maintain governance oversight. Review loaded data tables and execute the final sign-off to push records live (updates status to <i>'Approved'</i>)."
+            admin: "<strong>System Admin Workspace:</strong> Manage enterprise users, add/configure accounts, assign roles, and monitor cross-tenant database pipelines.",
+            engineer: "<strong>Data Engineer Workspace:</strong> Identify uploaded tables for data cleaning, build Facts and Dimensions (Star Schema), and stage models for Power BI integration.",
+            uploader: "<strong>Uploader Workspace:</strong> Create datasets, parse template files (.csv, .xlsx, .xls, .json), delete tables, and restore items from the Recycle Bin trash.",
+            maker: "<strong>Maker Workspace:</strong> Review organization uploads, verify schemas, and push payloads forward (status: <i>'Loaded'</i>).",
+            approver: "<strong>Approver Workspace:</strong> Governance oversight. Review data tables and execute final enterprise sign-off (status: <i>'Approved'</i>)."
         };
 
-        function toggleAuthMode() {
-            isRegisterMode = !isRegisterMode;
-            const nameField = document.getElementById('nameFieldContainer');
-            const roleField = document.getElementById('roleFieldContainer');
+        function toggleAccountTypeFields() {
+            const type = document.getElementById('regAccountType').value;
+            const container = document.getElementById('tenantNameContainer');
+            const label = document.getElementById('tenantLabel');
+            const input = document.getElementById('regTenantName');
+
+            if (type === 'user') {
+                container.classList.add('hidden');
+                input.required = false;
+            } else if (type === 'company') {
+                container.classList.remove('hidden');
+                label.innerText = "Company / Enterprise Name";
+                input.placeholder = "e.g. Acme Corporation";
+                input.required = true;
+            } else if (type === 'organization') {
+                container.classList.remove('hidden');
+                label.innerText = "Organization / Institution Name";
+                input.placeholder = "e.g. Global Health Foundation";
+                input.required = true;
+            }
+        }
+
+        function switchAuthView(mode) {
+            authState = mode;
+            const regFieldsGroup = document.getElementById('regFieldsGroup');
+            const forgotLink = document.getElementById('forgotPasswordLink');
             const panelTitle = document.getElementById('panelTitle');
             const panelDesc = document.getElementById('panelDesc');
             const formHeading = document.getElementById('formHeading');
             const formSubheading = document.getElementById('formSubheading');
             const authSubmitBtn = document.getElementById('authSubmitBtn');
             const switchBtn = document.getElementById('switchModeBtn');
+            const mainForm = document.getElementById('mainAuthForm');
+            const forgotForm = document.getElementById('forgotForm');
+            const resetForm = document.getElementById('resetForm');
 
-            if(isRegisterMode) {
-                nameField.style.display = 'block';
-                roleField.style.display = 'block';
-                document.getElementById('regName').required = true;
-                panelTitle.innerText = "Create Your Account";
-                panelDesc.innerText = "Create, Discover and Share Your Files with ease across enterprise networks.";
-                formHeading.innerText = "CREATE YOUR PORTAL ACCOUNT";
-                formSubheading.innerText = "Register a new profile to access the data pipeline";
-                authSubmitBtn.innerText = "Create Account";
+            if (mode === 'register') {
+                mainForm.classList.remove('hidden');
+                forgotForm.classList.add('hidden');
+                resetForm.classList.add('hidden');
+                regFieldsGroup.style.display = 'block';
+                forgotLink.style.display = 'block';
+                panelTitle.innerText = "Enterprise Onboarding";
+                panelDesc.innerText = "Onboard users, companies, enterprises, and organizations onto a unified data governance pipeline.";
+                formHeading.innerText = "TENANT & USER ONBOARDING";
+                formSubheading.innerText = "Register your profile or corporate organization";
+                authSubmitBtn.innerText = "Complete Onboarding";
                 switchBtn.innerText = "Existing user? Log In";
-            } else {
-                nameField.style.display = 'none';
-                roleField.style.display = 'none';
-                document.getElementById('regName').required = false;
+                toggleAccountTypeFields();
+            } else if (mode === 'login') {
+                mainForm.classList.remove('hidden');
+                forgotForm.classList.add('hidden');
+                resetForm.classList.add('hidden');
+                regFieldsGroup.style.display = 'none';
+                forgotLink.style.display = 'block';
                 panelTitle.innerText = "Welcome Back";
                 panelDesc.innerText = "Log in using your registered domain credentials.";
-                formHeading.innerText = "WELCOME TO THE DATA FLOW PORTAL";
-                formSubheading.innerText = "Login using your email and password";
+                formHeading.innerText = "PORTAL AUTHENTICATION";
+                formSubheading.innerText = "Access your enterprise workspace";
                 authSubmitBtn.innerText = "Log In";
-                switchBtn.innerText = "New user? Create Account";
+                switchBtn.innerText = "New onboarding? Register here";
+            } else if (mode === 'forgot') {
+                mainForm.classList.add('hidden');
+                forgotForm.classList.remove('hidden');
+                resetForm.classList.add('hidden');
+                panelTitle.innerText = "Password Recovery";
+                panelDesc.innerText = "Request a secure password reset link dispatched straight to your work email.";
+                formHeading.innerText = "RESET VIA EMAIL";
+                formSubheading.innerText = "Enter your registered email address";
+                switchBtn.innerText = "Remembered password? Log In";
+            } else if (mode === 'reset') {
+                mainForm.classList.add('hidden');
+                forgotForm.classList.add('hidden');
+                resetForm.classList.remove('hidden');
+                panelTitle.innerText = "Set New Password";
+                panelDesc.innerText = "Create a secure new password for your enterprise workspace.";
+                formHeading.innerText = "UPDATE ACCOUNT CREDENTIALS";
+                formSubheading.innerText = "Secure token authentication verified";
+                switchBtn.innerText = "Back to Login";
             }
         }
 
@@ -290,47 +515,78 @@
             const email = document.getElementById('authEmail').value.trim().toLowerCase();
             const password = document.getElementById('authPassword').value;
 
-            if (isRegisterMode) {
-                // Registration Flow
+            if (authState === 'register') {
+                const accountType = document.getElementById('regAccountType').value;
+                const tenantName = accountType === 'user' ? 'Independent' : document.getElementById('regTenantName').value.trim();
                 const name = document.getElementById('regName').value.trim();
                 const role = document.getElementById('regRole').value;
 
-                const existingUser = users.find(u => u.email === email);
-                if(existingUser) {
+                if (users.some(u => u.email === email)) {
                     alert("An account with this email already exists! Please log in.");
                     return;
                 }
 
-                const newUser = { name, email, password, role };
+                const newUser = { name, email, password, role, accountType, tenantName };
                 users.push(newUser);
                 localStorage.setItem('keez_users', JSON.stringify(users));
-
-                alert("Account successfully created! Logging you in...");
+                alert("Onboarding successful! Logging you in...");
                 loginUser(newUser);
             } else {
-                // Login Flow
                 const foundUser = users.find(u => u.email === email && u.password === password);
-                if(!foundUser) {
-                    alert("Invalid email or password. Please check your credentials or create an account.");
+                if (!foundUser) {
+                    alert("Invalid email or password.");
                     return;
                 }
                 loginUser(foundUser);
             }
         }
 
+        function handleForgotRequest(event) {
+            event.preventDefault();
+            const email = document.getElementById('forgotEmail').value.trim().toLowerCase();
+            const user = users.find(u => u.email === email);
+
+            if (!user) {
+                alert("No account found with this email address in the enterprise directory.");
+                return;
+            }
+
+            resetEmailTarget = email;
+            document.getElementById('resetTargetEmail').innerText = email;
+            
+            // Simulate Mail Dispatch Notification
+            alert(`📧 [Mail Server Dispatched]: A secure password reset link has been successfully sent to ${email}. (Simulated: Proceeding to password reset screen).`);
+            switchAuthView('reset');
+        }
+
+        function handlePasswordUpdate(event) {
+            event.preventDefault();
+            const newPassword = document.getElementById('newPasswordInput').value;
+
+            const user = users.find(u => u.email === resetEmailTarget);
+            if (user) {
+                user.password = newPassword;
+                localStorage.setItem('keez_users', JSON.stringify(users));
+                alert("Password successfully reset! You can now log in with your new credentials.");
+                document.getElementById('resetForm').reset();
+                switchAuthView('login');
+            } else {
+                alert("Session error. Please restart the password reset process.");
+                switchAuthView('forgot');
+            }
+        }
+
         function loginUser(userObj) {
             currentUser = userObj;
-
-            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('authScreen').classList.add('hidden');
             document.getElementById('portalApp').classList.remove('hidden');
-
             document.getElementById('navUserName').innerText = userObj.name;
+            document.getElementById('navTenantSub').innerText = `${userObj.tenantName} (${userObj.accountType.toUpperCase()})`;
             document.getElementById('navUserRole').innerText = userObj.role.toUpperCase() + " ACCESS";
 
             document.querySelectorAll('.role-view').forEach(el => el.classList.add('hidden'));
             document.getElementById(`view${userObj.role.charAt(0).toUpperCase() + userObj.role.slice(1)}`).classList.remove('hidden');
             document.getElementById('roleHelpCard').innerHTML = roleHelpTexts[userObj.role];
-
             renderAll();
         }
 
@@ -338,48 +594,175 @@
             currentUser = null;
             document.getElementById('authPassword').value = '';
             document.getElementById('portalApp').classList.add('hidden');
-            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('authScreen').classList.remove('hidden');
+            switchAuthView('login');
+        }
+
+        function handleAdminAddUser(event) {
+            event.preventDefault();
+            const name = document.getElementById('adminNewName').value.trim();
+            const email = document.getElementById('adminNewEmail').value.trim().toLowerCase();
+            const tenantName = document.getElementById('adminNewTenant').value.trim();
+            const role = document.getElementById('adminNewRole').value;
+
+            if (users.some(u => u.email === email)) {
+                alert("User with this email already exists.");
+                return;
+            }
+
+            users.push({ name, email, password: "password123", role, accountType: "company", tenantName });
+            localStorage.setItem('keez_users', JSON.stringify(users));
+            alert(`User "${name}" successfully added!`);
+            event.target.reset();
+            renderAll();
+        }
+
+        function adminDeleteUser(email) {
+            if (confirm("Are you sure you want to delete this user account?")) {
+                users = users.filter(u => u.email !== email);
+                localStorage.setItem('keez_users', JSON.stringify(users));
+                renderAll();
+            }
+        }
+
+        function cleanTableData(id) {
+            const item = datasets.find(d => d.id === id);
+            if (item) {
+                alert(`Data cleaning executed successfully on table "${item.name}": Nulls handled, columns trimmed, and types standardized!`);
+                renderAll();
+            }
+        }
+
+        function handleFactDimCreate(event) {
+            event.preventDefault();
+            const name = document.getElementById('modelNameInput').value.trim();
+            const type = document.getElementById('schemaTypeSelect').value;
+
+            if (!name) return;
+
+            starModels.push({ id: Math.floor(500 + Math.random() * 400), name, type, status: "Ready for Power BI" });
+            localStorage.setItem('keez_star_models', JSON.stringify(starModels));
+            document.getElementById('modelNameInput').value = '';
+            alert(`Star Schema model "${name}" successfully created and staged for Power BI!`);
+            renderAll();
+        }
+
+        function uploaderDeleteDataset(id) {
+            const index = datasets.findIndex(d => d.id === id);
+            if (index !== -1) {
+                const deletedItem = datasets.splice(index, 1)[0];
+                trashDatasets.push(deletedItem);
+                localStorage.setItem('keez_datasets', JSON.stringify(datasets));
+                localStorage.setItem('keez_trash', JSON.stringify(trashDatasets));
+                alert(`Dataset "${deletedItem.name}" moved to Trash / Recycle Bin.`);
+                renderAll();
+            }
+        }
+
+        function uploaderRestoreDataset(id) {
+            const index = trashDatasets.findIndex(d => d.id === id);
+            if (index !== -1) {
+                const restoredItem = trashDatasets.splice(index, 1)[0];
+                datasets.push(restoredItem);
+                localStorage.setItem('keez_datasets', JSON.stringify(datasets));
+                localStorage.setItem('keez_trash', JSON.stringify(trashDatasets));
+                alert(`Dataset "${restoredItem.name}" successfully restored!`);
+                renderAll();
+            }
+        }
+
+        function parseUploadedFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.SheetNames[0];
+                    const jsonRows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], { header: 1 });
+
+                    if (jsonRows.length === 0) return;
+
+                    const headers = jsonRows[0];
+                    const sampleRow = jsonRows[1] || [];
+
+                    parsedSchemaColumns = headers.map((colName, index) => {
+                        const sampleVal = sampleRow[index] !== undefined ? sampleRow[index] : "N/A";
+                        let detectedType = "String (Text)";
+                        if (!isNaN(sampleVal) && sampleVal !== "") {
+                            detectedType = String(sampleVal).includes(".") ? "Float (Decimal)" : "Integer (Number)";
+                        }
+                        return { name: colName || `Column_${index+1}`, sample: sampleVal, type: detectedType };
+                    });
+
+                    renderSchemaInspector();
+                } catch (err) {
+                    console.error(err);
+                    alert("Error parsing file format.");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function renderSchemaInspector() {
+            const container = document.getElementById('schemaInspectorContainer');
+            const tbody = document.getElementById('schemaTableBody');
+            tbody.innerHTML = '';
+
+            parsedSchemaColumns.forEach((col, idx) => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="p-2.5 font-semibold text-slate-800">${col.name}</td>
+                        <td class="p-2.5 text-slate-500 truncate max-w-[120px]">${col.sample}</td>
+                        <td class="p-2.5"><span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-mono text-[11px]">${col.type}</span></td>
+                        <td class="p-2.5">
+                            <select onchange="parsedSchemaColumns[${idx}].type = this.value" class="border border-slate-300 rounded px-2 py-1 text-xs bg-white outline-none focus:border-indigo-500">
+                                <option value="String (Text)" ${col.type.includes('String') ? 'selected' : ''}>String (Text)</option>
+                                <option value="Integer (Number)" ${col.type.includes('Integer') ? 'selected' : ''}>Integer (Number)</option>
+                                <option value="Float (Decimal)" ${col.type.includes('Float') ? 'selected' : ''}>Float (Decimal)</option>
+                                <option value="Boolean" ${col.type.includes('Boolean') ? 'selected' : ''}>Boolean</option>
+                                <option value="Date / Timestamp" ${col.type.includes('Date') ? 'selected' : ''}>Date / Timestamp</option>
+                            </select>
+                        </td>
+                    </tr>
+                `;
+            });
+            container.classList.remove('hidden');
         }
 
         function handleUpload(event) {
             event.preventDefault();
             const name = document.getElementById('datasetName').value;
             const dept = document.getElementById('datasetDept').value;
-            const fileInput = document.getElementById('dataFile');
             
-            if(!fileInput.files[0]) return;
-
             const newRecord = {
                 id: Math.floor(100 + Math.random() * 900),
                 name: name,
+                tenant: currentUser.tenantName,
                 dept: dept,
-                uploader: currentUser.name + " (" + currentUser.role + ")",
-                status: "Uploaded"
+                uploader: currentUser.name,
+                status: "Uploaded",
+                schema: parsedSchemaColumns
             };
 
             datasets.push(newRecord);
             localStorage.setItem('keez_datasets', JSON.stringify(datasets));
             document.getElementById('uploadForm').reset();
-            alert("Dataset successfully ingested to staging pipeline!");
+            document.getElementById('schemaInspectorContainer').classList.add('hidden');
+            alert("Dataset successfully created and ingested!");
             renderAll();
         }
 
         function makerLoadData(id) {
             const item = datasets.find(d => d.id === id);
-            if(item) {
-                item.status = "Loaded";
-                localStorage.setItem('keez_datasets', JSON.stringify(datasets));
-                renderAll();
-            }
+            if(item) { item.status = "Loaded"; localStorage.setItem('keez_datasets', JSON.stringify(datasets)); renderAll(); }
         }
 
         function approverApproveData(id) {
             const item = datasets.find(d => d.id === id);
-            if(item) {
-                item.status = "Approved";
-                localStorage.setItem('keez_datasets', JSON.stringify(datasets));
-                renderAll();
-            }
+            if(item) { item.status = "Approved"; localStorage.setItem('keez_datasets', JSON.stringify(datasets)); renderAll(); }
         }
 
         function renderAll() {
@@ -387,53 +770,61 @@
             document.getElementById('statStaged').innerText = datasets.filter(d => d.status === 'Loaded').length;
             document.getElementById('statApproved').innerText = datasets.filter(d => d.status === 'Approved').length;
 
+            const adminUsersContainer = document.getElementById('adminUsersContainer');
+            if (adminUsersContainer) {
+                adminUsersContainer.innerHTML = `<table class="w-full text-left text-xs bg-white"><thead class="bg-slate-100 text-slate-600 uppercase font-semibold"><tr><th class="p-2.5">Name</th><th class="p-2.5">Email</th><th class="p-2.5">Tenant</th><th class="p-2.5">Role</th><th class="p-2.5">Action</th></tr></thead><tbody class="divide-y divide-slate-100">${users.map(u=>`<tr><td class="p-2.5 font-bold text-slate-800">${u.name}</td><td class="p-2.5 text-slate-600">${u.email}</td><td class="p-2.5 text-indigo-700 font-semibold">${u.tenantName}</td><td class="p-2.5 uppercase font-mono">${u.role}</td><td class="p-2.5"><button onclick="adminDeleteUser('${u.email}')" class="bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1 rounded text-[11px]">Delete</button></td></tr>`).join('')}</tbody></table>`;
+            }
+
+            const engineerTablesContainer = document.getElementById('engineerTablesContainer');
+            if (engineerTablesContainer) {
+                engineerTablesContainer.innerHTML = datasets.length === 0 ? `<p class="text-xs text-slate-400 italic p-4">No tables available for identification.</p>` :
+                    `<table class="w-full text-left text-xs bg-white"><thead class="bg-slate-100 text-slate-600 uppercase font-semibold"><tr><th class="p-2.5">Table ID</th><th class="p-2.5">Table Name</th><th class="p-2.5">Tenant</th><th class="p-2.5">Status</th><th class="p-2.5">Engineering Action</th></tr></thead><tbody class="divide-y divide-slate-100">${datasets.map(d=>`<tr><td class="p-2.5 font-mono">${d.id}</td><td class="p-2.5 font-semibold text-slate-800">${d.name}</td><td class="p-2.5 text-indigo-700">${d.tenant}</td><td class="p-2.5 font-bold">${d.status}</td><td class="p-2.5"><button onclick="cleanTableData(${d.id})" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-xs"><i class="fa-solid fa-broom mr-1"></i> Clean & Profile</button></td></tr>`).join('')}</tbody></table>`;
+            }
+
+            const powerBiContainer = document.getElementById('powerBiContainer');
+            if (powerBiContainer) {
+                powerBiContainer.innerHTML = starModels.length === 0 ? `<p class="text-xs text-slate-400 italic p-4">No star schema models generated yet.</p>` :
+                    `<table class="w-full text-left text-xs bg-white"><thead class="bg-amber-50 text-amber-900 uppercase font-semibold"><tr><th class="p-2.5">Model ID</th><th class="p-2.5">Schema Object Name</th><th class="p-2.5">Classification</th><th class="p-2.5">Power BI Status</th></tr></thead><tbody class="divide-y divide-slate-100">${starModels.map(m=>`<tr><td class="p-2.5 font-mono">${m.id}</td><td class="p-2.5 font-bold text-slate-800">${m.name}</td><td class="p-2.5 text-indigo-700 font-semibold">${m.type}</td><td class="p-2.5"><span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold text-[10px]"><i class="fa-solid fa-cloud-arrow-up mr-1"></i> ${m.status}</span></td></tr>`).join('')}</tbody></table>`;
+            }
+
+            const uploaderTablesManager = document.getElementById('uploaderTablesManager');
+            if (uploaderTablesManager) {
+                uploaderTablesManager.innerHTML = datasets.length === 0 ? `<p class="text-xs text-slate-400 italic p-4">No active datasets found.</p>` :
+                    `<table class="w-full text-left text-xs bg-white"><thead class="bg-slate-100 text-slate-600 uppercase font-semibold"><tr><th class="p-2.5">ID</th><th class="p-2.5">Dataset Name</th><th class="p-2.5">Dept</th><th class="p-2.5">Status</th><th class="p-2.5">Action</th></tr></thead><tbody class="divide-y divide-slate-100">${datasets.map(d=>`<tr><td class="p-2.5 font-mono">${d.id}</td><td class="p-2.5 font-medium text-slate-800">${d.name}</td><td class="p-2.5 text-slate-600">${d.dept}</td><td class="p-2.5 font-bold">${d.status}</td><td class="p-2.5"><button onclick="uploaderDeleteDataset(${d.id})" class="bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1 rounded text-[11px]"><i class="fa-solid fa-trash mr-1"></i> Delete Table</button></td></tr>`).join('')}</tbody></table>`;
+            }
+
+            const trashBinContainer = document.getElementById('trashBinContainer');
+            if (trashBinContainer) {
+                trashBinContainer.innerHTML = trashDatasets.length === 0 ? `<p class="text-xs text-slate-400 italic p-4">Trash bin is empty.</p>` :
+                    `<table class="w-full text-left text-xs bg-white"><thead class="bg-amber-100 text-amber-900 uppercase font-semibold"><tr><th class="p-2.5">ID</th><th class="p-2.5">Dataset Name</th><th class="p-2.5">Dept</th><th class="p-2.5">Action</th></tr></thead><tbody class="divide-y divide-amber-100">${trashDatasets.map(d=>`<tr><td class="p-2.5 font-mono">${d.id}</td><td class="p-2.5 font-medium text-slate-800">${d.name}</td><td class="p-2.5 text-slate-600">${d.dept}</td><td class="p-2.5"><button onclick="uploaderRestoreDataset(${d.id})" class="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded text-[11px]"><i class="fa-solid fa-rotate-left mr-1"></i> Restore Table</button></td></tr>`).join('')}</tbody></table>`;
+            }
+
             const makerContainer = document.getElementById('makerTableContainer');
             if(makerContainer) {
                 const uploadItems = datasets.filter(d => d.status === 'Uploaded');
-                if(uploadItems.length === 0) {
-                    makerContainer.innerHTML = `<p class="text-xs text-slate-400 italic py-4">No pending uploads available for transformation.</p>`;
-                } else {
-                    let html = `<table class="w-full text-left text-xs"><thead class="bg-slate-100 text-slate-600 uppercase font-semibold"><tr><th class="p-2.5">ID</th><th class="p-2.5">Name</th><th class="p-2.5">Dept</th><th class="p-2.5">Action</th></tr></thead><tbody class="divide-y divide-slate-100">`;
-                    uploadItems.forEach(d => {
-                        html += `<tr><td class="p-2.5 font-mono">${d.id}</td><td class="p-2.5 font-medium">${d.name}</td><td class="p-2.5">${d.dept}</td><td class="p-2.5"><button onclick="makerLoadData(${d.id})" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-xs transition active:scale-95"><i class="fa-solid fa-play mr-1"></i> Process & Load</button></td></tr>`;
-                    });
-                    html += `</tbody></table>`;
-                    makerContainer.innerHTML = html;
-                }
+                makerContainer.innerHTML = uploadItems.length === 0 ? `<p class="text-xs text-slate-400 italic py-4">No pending uploads.</p>` : 
+                    `<table class="w-full text-left text-xs"><thead class="bg-slate-100 text-slate-600 uppercase font-semibold"><tr><th class="p-2.5">ID</th><th class="p-2.5">Name</th><th class="p-2.5">Tenant</th><th class="p-2.5">Action</th></tr></thead><tbody class="divide-y divide-slate-100">${uploadItems.map(d=>`<tr><td class="p-2.5 font-mono">${d.id}</td><td class="p-2.5 font-medium">${d.name}</td><td class="p-2.5 text-indigo-700 font-semibold">${d.tenant}</td><td class="p-2.5"><button onclick="makerLoadData(${d.id})" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs">Load</button></td></tr>`).join('')}</tbody></table>`;
             }
 
             const approverContainer = document.getElementById('approverTableContainer');
             if(approverContainer) {
                 const loadItems = datasets.filter(d => d.status === 'Loaded');
-                if(loadItems.length === 0) {
-                    approverContainer.innerHTML = `<p class="text-xs text-slate-400 italic py-4">No staged datasets waiting for governance sign-off.</p>`;
-                } else {
-                    let html = `<table class="w-full text-left text-xs"><thead class="bg-slate-100 text-slate-600 uppercase font-semibold"><tr><th class="p-2.5">ID</th><th class="p-2.5">Name</th><th class="p-2.5">Dept</th><th class="p-2.5">Action</th></tr></thead><tbody class="divide-y divide-slate-100">`;
-                    loadItems.forEach(d => {
-                        html += `<tr><td class="p-2.5 font-mono">${d.id}</td><td class="p-2.5 font-medium">${d.name}</td><td class="p-2.5">${d.dept}</td><td class="p-2.5"><button onclick="approverApproveData(${d.id})" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded text-xs transition active:scale-95"><i class="fa-solid fa-check mr-1"></i> Approve & Push Live</button></td></tr>`;
-                    });
-                    html += `</tbody></table>`;
-                    approverContainer.innerHTML = html;
-                }
+                approverContainer.innerHTML = loadItems.length === 0 ? `<p class="text-xs text-slate-400 italic py-4">No staged datasets.</p>` : 
+                    `<table class="w-full text-left text-xs"><thead class="bg-slate-100 text-slate-600 uppercase font-semibold"><tr><th class="p-2.5">ID</th><th class="p-2.5">Name</th><th class="p-2.5">Tenant</th><th class="p-2.5">Action</th></tr></thead><tbody class="divide-y divide-slate-100">${loadItems.map(d=>`<tr><td class="p-2.5 font-mono">${d.id}</td><td class="p-2.5 font-medium">${d.name}</td><td class="p-2.5 text-indigo-700 font-semibold">${d.tenant}</td><td class="p-2.5"><button onclick="approverApproveData(${d.id})" class="bg-emerald-600 text-white px-3 py-1.5 rounded text-xs">Approve</button></td></tr>`).join('')}</tbody></table>`;
             }
 
             const logBody = document.getElementById('pipelineLogBody');
             if(logBody) {
-                let logHtml = '';
-                datasets.forEach(d => {
-                    let badgeColor = 'bg-amber-100 text-amber-800';
-                    if(d.status === 'Loaded') badgeColor = 'bg-blue-100 text-blue-800';
-                    if(d.status === 'Approved') badgeColor = 'bg-emerald-100 text-emerald-800';
-
-                    logHtml += `<tr>
+                logBody.innerHTML = datasets.map(d => {
+                    let badgeColor = d.status === 'Uploaded' ? 'bg-amber-100 text-amber-800' : d.status === 'Loaded' ? 'bg-blue-100 text-blue-800' : 'bg-emerald-100 text-emerald-800';
+                    return `<tr>
                         <td class="p-3 font-mono text-slate-500">${d.id}</td>
                         <td class="p-3 font-semibold text-slate-800">${d.name}</td>
+                        <td class="p-3 text-indigo-700 font-medium">${d.tenant}</td>
                         <td class="p-3 text-slate-600">${d.dept}</td>
-                        <td class="p-3 text-slate-500">${d.uploader}</td>
                         <td class="p-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${badgeColor}">${d.status}</span></td>
                     </tr>`;
-                });
-                logBody.innerHTML = logHtml;
+                }).join('');
             }
         }
     </script>
