@@ -2,6 +2,7 @@ const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -54,6 +55,11 @@ const chunkArray = (array, size) => {
 };
 
 // ==================== API ENDPOINTS ====================
+
+// Explicit Route to serve index.html at root
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 // Test Health Check
 app.get('/api/health', (req, res) => {
